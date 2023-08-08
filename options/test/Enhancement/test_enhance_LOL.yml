@@ -1,0 +1,75 @@
+name: EnhancementCond
+model_type: EnhanceConditionHisModel
+scale: 1
+num_gpu: 1  # set num_gpu: 0 for cpu mode
+manual_seed: 0
+noiseMap_block: 16
+
+datasets:
+  val:  # the 1st test dataset
+    name: LOL
+    type: LQGT_ref_n_dataset
+    data_type: img
+    dataroot_GT: 
+    dataroot_ref: 
+    dataroot_LQ: 
+    n_refs: 1 # number of reference images
+    ref_cri: random  # mse_GT  color_condition  niqe  random
+    resize_ref_to_500: true
+    color: RGB
+
+
+# network structures
+network_decom:
+  type: decomp_KinD
+  num_in_ch: 3
+  num_feat: 32
+  rgb_mean: [0.4488, 0.4371, 0.404]
+
+network_denoise:
+  type: Noise2NoiseSubtraction
+  num_in_ch: 4
+  output_channels: 16
+  conditional_dim: 8
+  finetune: False
+
+network_g:
+  type: EnhancementCondition_hsvHistogram
+  illu_num_in_ch: 1
+  illu_num_feat: 16
+  illu_histogram_bins: 254
+  illu_histogram_dim: 64
+  illu_num_out_ch: 1
+  condition_num_in_ch: 3
+  condition_hidden_ch: 16
+  negative_slope: 0.2
+  reflection_num_in_ch: 3
+  reflection_num_base: 6
+  reflection_num_out_ch: 3
+  tanh: True
+  rgb_mean: [0.4488, 0.4371, 0.404]
+
+
+# path
+path:
+  pretrain_network_decom: path to the pre-trained decomposition network
+  strict_load_decom: True
+  pretrain_network_denoise: path to the pre-trained denoise_1 network
+  strict_load_denoise: True
+  pretrain_network_g: path to the pre-trained enhancement network
+  strict_load_g: True
+
+# validation settings
+val:
+  save_img: true
+  suffix: ~  # add suffix to saved images, if None, use exp name
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_ssim
+      crop_border: 0
+      test_y_channel: false

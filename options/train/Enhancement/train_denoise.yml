@@ -1,0 +1,102 @@
+# general settings
+name: Denoise_0
+model_type: DenoiseModel
+scale: 1
+num_gpu: 1  # set num_gpu: 0 for cpu mode
+manual_seed: 10
+control: !!float 0.0
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: FiveKExpertC_LOLTrain
+    type: NoiseImageIlluDataset
+    dataroot_gt: 
+    dataroot_lq: 
+    filename_tmpl: '{}'
+    io_backend:
+      type: disk
+      # (for lmdb)
+      # type: lmdb
+
+    gt_size: 48
+    use_flip: true
+    use_rot: true
+    sigma: 40
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 2
+    batch_size_per_gpu: 64
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+
+  val:
+    name: LOLTest
+    type: NoiseImageIlluDataset
+    dataroot_gt: 
+    dataroot_lq: 
+    io_backend:
+      type: disk
+    sigma: 40
+
+# network structures
+network_g:
+  type: Noise2NoiseSubtraction
+  num_in_ch: 4
+  output_channels: 16
+  conditional_dim: 8
+
+# path
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state: ~
+
+# training settings
+train:
+  ema_decay: 0.999
+  optim_g:
+    type: Adam
+    lr: !!float 3e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [30000, 50000, 100000, 150000]
+    gamma: 0.5
+
+  total_iter: 200000
+  warmup_iter: -1  # no warm up
+
+  # losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+
+# validation settings
+val:
+  val_freq: !!float 10000
+  save_img: true
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+
+# logging settings
+logger:
+  print_freq: 1
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
